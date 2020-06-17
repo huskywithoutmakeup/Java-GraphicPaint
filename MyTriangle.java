@@ -1,14 +1,14 @@
 import java.awt.BasicStroke;
 import java.awt.Graphics2D;
 import java.awt.Paint;
-import java.awt.Stroke;
+
 
 public class MyTriangle extends MyShape{
 	public MyTriangle(){
-		this.setStroke(new BasicStroke());
+		super();
 	}
 	
-	public MyTriangle(Paint p,Stroke s){
+	public MyTriangle(Paint p,float s){
 		super(p,s);
 	}
 	
@@ -18,7 +18,8 @@ public class MyTriangle extends MyShape{
 	
 	public void draw(Graphics2D g) { //ÖØÐ´»­¾ØÐÎ
 		g.setPaint(getMyColor());
-		g.setStroke(getStroke());
+		g.setStroke(new BasicStroke(this.getStroke(), BasicStroke.CAP_ROUND,
+				BasicStroke.JOIN_BEVEL));
 		int[] xp = new int[] {getX1(),getX2(),(int) ((getX1()+getX2())/2)};
 		int[] yp = new int[] {getY1(),getY1(),getY2()};
 		if(isFilled())

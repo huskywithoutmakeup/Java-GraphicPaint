@@ -1,9 +1,14 @@
 import java.awt.*;
 import java.awt.event.*;
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-import javax.swing.text.Document;
+
 
 @SuppressWarnings("serial")
 public class TheFrame extends JFrame{
@@ -11,12 +16,14 @@ public class TheFrame extends JFrame{
 	private ThePanel drawPanel;//绘图主面板
 	private JPanel control1; //包含主要控制绘图选项的面板
 	private JPanel control2; //包含次要控制绘图选项的面板
-	private Color color1=Color.YELLOW,color2=Color.GREEN,drawColor = Color.WHITE;	//表示初末色型,画板色型的默认值
-	private JTextField width,dashWidth; //线宽和虚线宽
-	private float[] dashes;  //虚线存储
+	private Color shapeColor=Color.YELLOW,drawColor = Color.WHITE;	//表示初末色型,画板色型的默认值
+	private JTextField width; //线宽和虚线宽
+	private ObjectOutputStream output; // 定义输入输出流，用来调用和保存图像文件
+	private ObjectInputStream input;
+	private int index;
 	
 	public TheFrame(){
-		super("xxx的简易适量图形编辑器"); //打印框架标题title
+		super("1904910002张泽群的简易适量图形编辑器"); //打印框架标题title
 		
 		setLayout(new BorderLayout()); //把框架设置为边界布局
 		
@@ -27,6 +34,24 @@ public class TheFrame extends JFrame{
 	
 		control1.setLayout(new FlowLayout());//设置控制面板为流式布局
 		control1.setAlignmentX(CENTER_ALIGNMENT); //居中对齐
+		
+		JButton openFile=new JButton("打开图片");
+		openFile.addActionListener( 
+				new ActionListener(){ 
+					public void actionPerformed(ActionEvent event){
+						fileOpen();
+					}
+				});
+		control1.add(openFile);
+		
+		JButton saveFile=new JButton("保存图片");
+		saveFile.addActionListener( 
+				new ActionListener(){ 
+					public void actionPerformed(ActionEvent event){
+						fileSave();
+					}
+				});
+		control1.add(saveFile);
 		
 		JButton revoke=new JButton("撤销");
 		revoke.addActionListener( //用于单击按钮
@@ -68,12 +93,26 @@ public class TheFrame extends JFrame{
 				});
 		control1.add(filled);//在控制面板1中加入填充勾选项
 		
-		control2.setLayout(new GridLayout(1,9,10,20)); //设置为网格布局1行8列
+		control1.add(new JLabel(" 选取"));
+		
+		String[] number = {"1","2","3","4","5","6","7","8","9","10","11","12"};
+		
+		@SuppressWarnings({ "unchecked", "rawtypes" })
+		final JComboBox numChoose=new JComboBox(number);//选择修改的图形
+		numChoose.addItemListener( 
+				new ItemListener(){ //匿名内部类
+					public void itemStateChanged(ItemEvent event){						
+						index =numChoose.getSelectedIndex();
+						}
+				});
+		control1.add(numChoose);//在控制面板1中加入图形选择项
+		
+		control2.setLayout(new GridLayout(1,7,10,20)); //设置为网格布局1行6列
 		
         final JButton panelColor=new JButton("画板色型");//创建两个控制渐变颜色的按钮
         panelColor.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent event){
-				drawColor=JColorChooser.showDialog(TheFrame.this, "选择颜色", color1);//选择颜色1
+				drawColor=JColorChooser.showDialog(TheFrame.this, "选择颜色", shapeColor);//选择颜色1
 				if(drawColor==null)
 					drawColor=Color.WHITE;
 				drawPanel.setBackground(drawColor);	
@@ -81,104 +120,70 @@ public class TheFrame extends JFrame{
 		});
         control2.add(panelColor);
 		
-		final JCheckBox gradient=new JCheckBox("颜色渐变");//创建是否颜色渐变的勾选项
-		gradient.addItemListener( //用于勾选
-				new ItemListener(){ 
-					public void itemStateChanged(ItemEvent event){
-						if(gradient.isSelected())
-						drawPanel.setCurrentColor(new GradientPaint(0,0,color1,50,50,color2,true));
-						else
-							drawPanel.setCurrentColor(color1);
-					}
-				});
-		control2.add(gradient);//在控制面板2中加入颜色渐变勾选项
-		
-		final JButton initialColor=new JButton("初色型"),finalColor=new JButton("末色型");//创建两个控制渐变颜色的按钮
-		
-		initialColor.addActionListener(new ActionListener(){
+		final JButton changeColor=new JButton("图形色型");//创建一个控制颜色的按钮
+		changeColor.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent event){
-				color1=JColorChooser.showDialog(TheFrame.this, "选择颜色", color1);//选择颜色1
-				drawPanel.setCurrentColor(color1);
-				if(color1==null)
-					color1=Color.YELLOW;
-				if(gradient.isSelected()) //如果被勾选
-					drawPanel.setCurrentColor(new GradientPaint(0,0,color1,50,50,color2,true));
+				shapeColor=JColorChooser.showDialog(TheFrame.this, "选择颜色", shapeColor);//选择颜色1
+				drawPanel.setCurrentColor(shapeColor);
+				if(shapeColor==null)
+					shapeColor=Color.YELLOW;
 			}
-		});
+		});		
+		control2.add(changeColor); //在控制面板2中加入颜色选择按钮
 		
-		finalColor.addActionListener(new ActionListener(){
+		final JButton resetColor=new JButton("重置选取图形颜色");//创建一个重置选取图形颜色的按钮
+		resetColor.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent event){
-				color2=JColorChooser.showDialog(TheFrame.this, "选择颜色", color2);//选择颜色2
-				if(color2==null)
-					color2=Color.GREEN;
-				if(gradient.isSelected()) //如果被勾选
-					drawPanel.setCurrentColor(new GradientPaint(0,0,color1,50,50,color2,true)); //设置当前渐变色
+				Paint newColor=JColorChooser.showDialog(TheFrame.this, "选择颜色", shapeColor);
+				if(shapeColor==null)
+					shapeColor=Color.YELLOW;
+				drawPanel.resetShapeColor(index, newColor);
 			}
-		});
+		});		
+		control2.add(resetColor);
 		
-		control2.add(initialColor); //在控制面板2中加入初末颜色选择按钮
-		control2.add(finalColor);
+		final JButton resetSize=new JButton("重置选取图形规模");//创建一个重置选取图形规模的按钮
+		resetSize.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent event){				
+				String input = JOptionPane.showInputDialog("请输入一个大于0的数来设置缩放规模!");
+				if(input==null) {
+					input = "1";
+				}
+				float scale = Float.parseFloat(input);
+				drawPanel.resetShapeSize(index, scale);
+			}
+		});		
+		control2.add(resetSize);
 		
-		width=new JTextField();     //创建表示线宽的文本框
-		dashWidth=new JTextField();//创建表示虚线宽的文本框
-		final JCheckBox dash=new JCheckBox("虚线");//创建是否是用虚线的勾选项
+		final JButton resetLocation=new JButton("重置选取图形位置");//创建一个重置选取图形位置的按钮
+		resetLocation.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent event){				
+				String input1 = JOptionPane.showInputDialog("请输入一个整数来设置图形中心的X值!");
+				String input2 = JOptionPane.showInputDialog("请输入一个整数来设置图形中心的Y值!");
+				if(input1==null||input2==null) {
+					JOptionPane.showMessageDialog(null, "输入错误!"); 
+				}
+				int x = Integer.parseInt(input1);
+				int y = Integer.parseInt(input2);
+				drawPanel.resetShapeLocation(index,x,y);
+			}
+		});		
+		control2.add(resetLocation);
 		
-		control2.add(new JLabel("                   线 宽"));//加入"线宽"的标签
+		control2.add(new JLabel("                         线 宽"));//加入"线宽"的标签
+		
+		width=new JTextField();     //创建表示线宽的文本框				
 	    width.addActionListener(//用于文本框的回车
 	    		new ActionListener(){
 	    			public  void actionPerformed(ActionEvent event){
-	    				if(!width.getText().isEmpty()){ //如果线宽、虚线宽的文本为不为空且虚线选项被勾选
-	    					if(dash.isSelected()&&!dashWidth.getText().isEmpty()){
-								dashes=new float[1];
-								dashes[0]=Integer.parseInt(dashWidth.getText());
-								drawPanel.setCurrentStroke(new BasicStroke(Integer.parseInt(width.getText()),BasicStroke.CAP_ROUND,BasicStroke.JOIN_ROUND,
-										10,dashes,0));	
-							}
-							else
-								drawPanel.setCurrentStroke(new BasicStroke(Integer.parseInt(width.getText()),BasicStroke.CAP_ROUND,BasicStroke.JOIN_ROUND));
-								
-	    				}
-	    			}
-	    		});
-		control2.add(width);
-		
-		control2.add(new JLabel("                  虚线宽"));//加入"虚线宽"的标签
-		 dashWidth.addActionListener(
-		    		new ActionListener(){
-		    			public void actionPerformed(ActionEvent event){
-		    				if(!dashWidth.getText().isEmpty()&&!width.getText().isEmpty()){ //如果线宽、虚线宽的文本为不为空且虚线选项被勾选
-		    					if(dash.isSelected()){
-									dashes=new float[1]; 
-									dashes[0]=Integer.parseInt(dashWidth.getText());  //重设stroke属性，主要是重写线宽和赋予虚线的属性
-									drawPanel.setCurrentStroke(new BasicStroke(Integer.parseInt(width.getText()),BasicStroke.CAP_ROUND,BasicStroke.JOIN_ROUND,
-											10,dashes,0));	
-								}	
-		    				}
-		    			}
-		    		});
-		control2.add(dashWidth);///在控制面板2中加入虚线宽文本框
-		
-		dash.addItemListener(
-				new ItemListener(){
-					public void itemStateChanged(ItemEvent event){
-						if(dash.isSelected()){ //判断是否勾选
-							dashes=new float[1];
-							if(!dashWidth.getText().isEmpty()&&!width.getText().isEmpty()){ //虚线宽和实线宽不为空
-								dashes[0]=Integer.parseInt(dashWidth.getText());
-							    drawPanel.setCurrentStroke(new BasicStroke(Integer.parseInt(width.getText()),BasicStroke.CAP_ROUND,BasicStroke.JOIN_ROUND,
-							    10,dashes,0));	
-							}						
-						}
-						   
-						else { //未勾选
-							if(!width.getText().isEmpty())
-							drawPanel.setCurrentStroke(new BasicStroke(Integer.parseInt(width.getText()),BasicStroke.CAP_ROUND,BasicStroke.JOIN_ROUND));
+	    				if(!width.getText().isEmpty()) //如果线宽文本为不为空
+	    					drawPanel.setCurrentStroke(Integer.parseInt(width.getText()));
 							
-						}
-					}
-				});
-		control2.add(dash);//在控制面板2中加入是否虚线勾选项
-		
+						else  //否则就设置为默认值
+							drawPanel.setCurrentStroke(1.0f);								
+	    				}
+	    		   });
+		control2.add(width);	
 		
 		JPanel CONTROL=new JPanel();//创建主控面板
 		CONTROL.setLayout(new BorderLayout());//设置为边界布局
@@ -187,6 +192,82 @@ public class TheFrame extends JFrame{
 		add(CONTROL,BorderLayout.NORTH);  //将主控制面板放在容器顶端
 		add(drawPanel,BorderLayout.CENTER);//将画图的主面板放在容器中间
 		add(mouseLabel,BorderLayout.SOUTH);//将显示鼠标坐标的标签放在容器底端
+	}
+	
+	public void fileSave() {
+		JFileChooser fileChooser = new JFileChooser();
+		fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+		int result = fileChooser.showSaveDialog(this);
+		if (result == JFileChooser.CANCEL_OPTION)
+			return;
+		File fileName = fileChooser.getSelectedFile();
+		fileName.canWrite();
+
+		if (fileName == null || fileName.getName().equals(""))
+			JOptionPane.showMessageDialog(fileChooser, "Invalid File Name",
+					"Invalid File Name", JOptionPane.ERROR_MESSAGE);
+		else {
+			try {
+				fileName.delete();
+				FileOutputStream fos = new FileOutputStream(fileName);
+
+				output = new ObjectOutputStream(fos);
+                MyShape[] list = drawPanel.getShapes();
+				output.writeInt(drawPanel.getShapeNum());
+
+				for (int i = 0; i < drawPanel.getShapeNum(); i++) {
+					MyShape p = list[i];
+					output.writeObject(p);
+					output.flush(); // 将所有图形信息强制转换成父类线性化存储到文件中
+				}
+				output.close();
+				fos.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	public void fileOpen() {
+		JFileChooser fileChooser = new JFileChooser();
+		fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+		int result = fileChooser.showOpenDialog(this);
+		if (result == JFileChooser.CANCEL_OPTION)
+			return;
+		File fileName = fileChooser.getSelectedFile();
+		fileName.canRead();
+		if (fileName == null || fileName.getName().equals(""))
+			JOptionPane.showMessageDialog(fileChooser, "Invalid File Name",
+					"Invalid File Name", JOptionPane.ERROR_MESSAGE);
+		else {
+			try {
+				FileInputStream fis = new FileInputStream(fileName);
+				input = new ObjectInputStream(fis);
+				MyShape inputRecord;
+				int countNumber = 0;
+				countNumber = input.readInt();
+				int i;
+				MyShape[] list = new MyShape[100];
+				for (i = 0; i < countNumber; i++) {
+					inputRecord = (MyShape) input.readObject();
+					list[i] = inputRecord;
+				}
+				drawPanel.setShapeNum(i);
+				drawPanel.setShapes(list);
+				input.close();
+				repaint();
+			} catch (EOFException endofFileException) {
+				JOptionPane.showMessageDialog(this, "no more record in file",
+						"class not found", JOptionPane.ERROR_MESSAGE);
+			} catch (ClassNotFoundException classNotFoundException) {
+				JOptionPane.showMessageDialog(this, "Unable to Create Object",
+						"end of file", JOptionPane.ERROR_MESSAGE);
+			} catch (IOException ioException) {
+				JOptionPane.showMessageDialog(this,
+						"error during read from file", "read Error",
+						JOptionPane.ERROR_MESSAGE);
+			}
+		}
 	}
 }
 

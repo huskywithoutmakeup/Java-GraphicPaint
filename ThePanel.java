@@ -11,43 +11,57 @@ public class ThePanel extends JPanel {
 	private int shapeType; //图形的类型
 	private Paint currentColor;  //当前图形颜色
 	private boolean ifFilled; //图形是否填充
-	private Stroke currentStroke;//当前stroke属性
+	private float currentStroke;//当前的线条粗细
 	
 	private JLabel mouseLabel;  //展示当前鼠标位置
 
-
-	public Stroke getCurrentStroke(){ //获得当前stroke属性
+	public float getCurrentStroke(){ //获得当前stroke属性
 		return currentStroke;
 	}
 
-	public void setCurrentStroke(Stroke currentStroke){//设置当前stroke属性
+	public void setCurrentStroke(float currentStroke){//设置当前stroke属性
 		this.currentStroke = currentStroke;
 	}
 
 
 	public ThePanel(JLabel label){ //构造方法
 		mouseLabel=label;
-		
 		shapes = new MyShape[100]; //开辟存储空间
 		shapeNum=0;
 		shapeType=0;
 		currentShape=null;
 		currentColor=Color.BLACK; //默认为黑色
-		currentStroke=new BasicStroke();
+		currentStroke=1.0f;
 		
 		setBackground(Color.white);//把面板背景色设置为白色	
 		MouseHandler handler=new MouseHandler(); //创建鼠标事件处理器
 		this.addMouseListener(handler);
 		this.addMouseMotionListener(handler);		
 	}
-	
 
 	public void paintComponent(Graphics g){ //画出shapes数组中的每一个图形
 		super.paintComponent(g);
-		for(int i=0;i<shapeNum;i++)
+		for(int i=0;i<shapeNum;i++) {
 			shapes[i].draw((Graphics2D)g);
+		}
 	}	
 
+	public MyShape[] getShapes(){//获取图形数组
+		return shapes;
+	}
+	
+	public void setShapes(MyShape[] shapess){//设置图形数组
+		this.shapes = shapess;
+	}
+	
+	public int getShapeNum(){//获取图形数组
+		return shapeNum;
+	}
+	
+	public void setShapeNum(int shapeNum){//设置图形类型
+		this.shapeNum = shapeNum;
+	}
+	
 	public int getShapeType(){//获取图形类型
 		return shapeType;
 	}
@@ -72,6 +86,35 @@ public class ThePanel extends JPanel {
 		this.ifFilled = isFilled;
 	}
 	
+	public void resetShapeColor(int i,Paint color) {
+		this.shapes[i].setMyColor(color);
+		repaint();
+	}
+	
+	public void resetShapeSize(int i,float scale) {
+		int x1 = this.shapes[i].getX1();
+		int x2 = this.shapes[i].getX2();
+		int y1 = this.shapes[i].getY1();
+		int y2 = this.shapes[i].getY2();
+		float c = scale -1;
+		this.shapes[i].setX1((int)(x1+x1*0.5*c-x2*0.5*c));
+		this.shapes[i].setX2((int)(x2+x2*0.5*c-x1*0.5*c));
+		this.shapes[i].setY1((int)(y1+y1*0.5*c-y2*0.5*c));
+		this.shapes[i].setY2((int)(y2+y2*0.5*c-y1*0.5*c));
+		repaint();
+	}
+	
+	public void resetShapeLocation(int i,int x,int y) {
+		int x1 = this.shapes[i].getX1();
+		int x2 = this.shapes[i].getX2();
+		int y1 = this.shapes[i].getY1();
+		int y2 = this.shapes[i].getY2();
+		this.shapes[i].setX1((int)(x+x1*0.5-x2*0.5));
+		this.shapes[i].setX2((int)(x+x2*0.5-x1*0.5));
+		this.shapes[i].setY1((int)(y+y1*0.5-y2*0.5));
+		this.shapes[i].setY2((int)(y+y2*0.5-y1*0.5));
+		repaint();
+	}
 	
 	public void clearLastShape(){ //撤销操作
 		if(shapeNum>=1)

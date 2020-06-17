@@ -1,14 +1,13 @@
 import java.awt.BasicStroke;
 import java.awt.Graphics2D;
 import java.awt.Paint;
-import java.awt.Stroke;
 
 public class MyRectangle extends MyShape{
 	public MyRectangle(){
-		this.setStroke(new BasicStroke());
+		super();
 	}
 	
-	public MyRectangle(Paint p,Stroke s){
+	public MyRectangle(Paint p,float s){
 		super(p,s);
 	}
 	
@@ -18,7 +17,8 @@ public class MyRectangle extends MyShape{
 	
 	public void draw(Graphics2D g) { //ÖØÐ´»­¾ØÐÎ
 		g.setPaint(getMyColor());
-		g.setStroke(getStroke());
+		g.setStroke(new BasicStroke(this.getStroke(), BasicStroke.CAP_ROUND,
+				BasicStroke.JOIN_BEVEL));
 		if(isFilled())
 			g.fillRect(getX1(), getY1(), getX2()-getX1(), getY2()-getY1());
 		else

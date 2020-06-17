@@ -1,28 +1,26 @@
-
-import java.awt.BasicStroke;
 import java.awt.Graphics2D;
 import java.awt.Paint;
-import java.awt.Stroke;
+import java.io.Serializable;
 
-public abstract class MyShape{
+public abstract class MyShape implements Serializable{
 	private int x1;  //第一个点的x值	
 	private int y1;  //第一个点的y值	
 	private int x2;  //第二个点的x值	
 	private int y2;  //第二个点的y值	
 	private Paint myColor;//图形的颜色
 	private boolean filled;//图形是否填充
-	private Stroke stroke; //stroke属性用于控制线条的宽度、笔形样式、线段连接方式或短划线图案
+	private float stroke = 1.0f; //线条粗细
 	
 	public MyShape(){//缺省构造法
-		stroke=new BasicStroke(); 
+		stroke = 1.0f;
 	}
 	
-	public MyShape(Paint p,Stroke s){ //构造2 颜色+stroke
+	public MyShape(Paint p,float s){ //构造2 颜色+stroke
 		this.setMyColor(p);
 		this.setStroke(s);
 	}
 	
-	public MyShape(Stroke s){ //构造3 stroke
+	public MyShape(float s){ //构造3 stroke
 		this.setStroke(s);
 	}
 	
@@ -35,11 +33,11 @@ public abstract class MyShape{
 		this.myColor = myColor;  
 	}
 	
-	public Stroke getStroke(){//获得stroke属性
+	public float getStroke(){//获得stroke属性
 		return stroke;
 	}
 	
-	public void setStroke(Stroke stroke){//设置stroke属性
+	public void setStroke(float stroke){//设置stroke属性
 		this.stroke = stroke;
 	}
 	
